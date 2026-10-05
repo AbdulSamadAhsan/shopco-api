@@ -1,0 +1,240 @@
+[
+  {
+    "name": "Gradient Graphic T-shirt",
+    "image": "https://reactshopco.vercel.app/assets/related-2.jpg",
+    "rating": 3.5,
+    "price": 145,
+    "category": "T-shirts",
+    "style": "Casual",
+    "color": "#000000",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large"
+    ],
+    "slug": "gradient-graphic-t-shirt",
+    "description": "Comfortable everyday style from the SHOP.CO collection.",
+    "brand": "SHOP.CO",
+    "colors": [
+      "#000000",
+      "#4F4631",
+      "#314F4A",
+      "#31344F"
+    ],
+    "stock": 50,
+    "featured": true
+  },
+  {
+    "name": "Polo with Tipping Details",
+    "image": "https://reactshopco.vercel.app/assets/related-3.jpg",
+    "rating": 4.5,
+    "price": 180,
+    "category": "Shirts",
+    "style": "Casual",
+    "color": "#ffffff",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large"
+    ],
+    "slug": "polo-with-tipping-details",
+    "description": "Comfortable everyday style from the SHOP.CO collection.",
+    "brand": "SHOP.CO",
+    "colors": [
+      "#ffffff",
+      "#4F4631",
+      "#314F4A",
+      "#31344F"
+    ],
+    "stock": 50,
+    "featured": true
+  },
+  {
+    "name": "Black Striped T-shirt",
+    "image": "https://reactshopco.vercel.app/assets/related-4.jpg",
+    "rating": 5,
+    "price": 120,
+    "oldPrice": 150,
+    "category": "T-shirts",
+    "style": "Party",
+    "color": "#000000",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large"
+    ],
+    "slug": "black-striped-t-shirt",
+    "description": "Comfortable everyday style from the SHOP.CO collection.",
+    "brand": "SHOP.CO",
+    "colors": [
+      "#000000",
+      "#4F4631",
+      "#314F4A",
+      "#31344F"
+    ],
+    "stock": 50,
+    "featured": true
+  },
+  {
+    "name": "Skinny Fit Jeans",
+    "image": "https://reactshopco.vercel.app/assets/skinny-jeans.png",
+    "rating": 3.5,
+    "price": 240,
+    "oldPrice": 260,
+    "category": "Jeans",
+    "style": "Casual",
+    "color": "#063af5",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large"
+    ],
+    "slug": "skinny-fit-jeans",
+    "description": "Comfortable everyday style from the SHOP.CO collection.",
+    "brand": "SHOP.CO",
+    "colors": [
+      "#063af5",
+      "#4F4631",
+      "#314F4A",
+      "#31344F"
+    ],
+    "stock": 50,
+    "featured": true
+  },
+  {
+    "name": "Checkered Shirt",
+    "image": "https://reactshopco.vercel.app/assets/main-shirt.jpg",
+    "rating": 4.5,
+    "price": 180,
+    "category": "Shirts",
+    "style": "Formal",
+    "color": "#f50606",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large"
+    ],
+    "slug": "checkered-shirt",
+    "description": "Comfortable everyday style from the SHOP.CO collection.",
+    "brand": "SHOP.CO",
+    "colors": [
+      "#f50606",
+      "#4F4631",
+      "#314F4A",
+      "#31344F"
+    ],
+    "stock": 50,
+    "featured": false
+  },
+  {
+    "name": "Sleeve Striped T-shirt",
+    "image": "https://reactshopco.vercel.app/assets/related-1.jpg",
+    "rating": 4.5,
+    "price": 130,
+    "oldPrice": 160,
+    "category": "T-shirts",
+    "style": "Gym",
+    "color": "#06caf5",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large"
+    ],
+    "slug": "sleeve-striped-t-shirt",
+    "description": "Comfortable everyday style from the SHOP.CO collection.",
+    "brand": "SHOP.CO",
+    "colors": [
+      "#06caf5",
+      "#4F4631",
+      "#314F4A",
+      "#31344F"
+    ],
+    "stock": 50,
+    "featured": false
+  },
+  {
+    "name": "Vertical Striped Shirt",
+    "image": "https://reactshopco.vercel.app/assets/thumb-front.jpg",
+    "rating": 5,
+    "price": 212,
+    "oldPrice": 232,
+    "category": "Shirts",
+    "style": "Formal",
+    "color": "#ffffff",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large"
+    ],
+    "slug": "vertical-striped-shirt",
+    "description": "Comfortable everyday style from the SHOP.CO collection.",
+    "brand": "SHOP.CO",
+    "colors": [
+      "#ffffff",
+      "#4F4631",
+      "#314F4A",
+      "#31344F"
+    ],
+    "stock": 50,
+    "featured": false
+  },
+  {
+    "name": "Courage Graphic T-shirt",
+    "image": "https://reactshopco.vercel.app/assets/party.jpg",
+    "rating": 4,
+    "price": 145,
+    "category": "T-shirts",
+    "style": "Party",
+    "color": "#7d06f5",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large"
+    ],
+    "slug": "courage-graphic-t-shirt",
+    "description": "Comfortable everyday style from the SHOP.CO collection.",
+    "brand": "SHOP.CO",
+    "colors": [
+      "#7d06f5",
+      "#4F4631",
+      "#314F4A",
+      "#31344F"
+    ],
+    "stock": 50,
+    "featured": false
+  },
+  {
+    "name": "Loose Fit Bermuda Shorts",
+    "image": "https://reactshopco.vercel.app/assets/gym.jpg",
+    "rating": 3,
+    "price": 80,
+    "category": "Shorts",
+    "style": "Gym",
+    "color": "#00c12b",
+    "sizes": [
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large"
+    ],
+    "slug": "loose-fit-bermuda-shorts",
+    "description": "Comfortable everyday style from the SHOP.CO collection.",
+    "brand": "SHOP.CO",
+    "colors": [
+      "#00c12b",
+      "#4F4631",
+      "#314F4A",
+      "#31344F"
+    ],
+    "stock": 50,
+    "featured": false
+  }
+]
