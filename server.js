@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const { connectDB } = require('./config/database.js');
-const systemRoutes = require('./routes/systemRoutes.js');
+
 const authRoutes = require('./routes/authRoutes.js');
 const userRoutes = require('./routes/UserRoutes.js');
 const productRoutes = require('./routes/productRoutes.js');
@@ -26,7 +26,7 @@ app.use(cors({
   },
 }));
 app.use(express.json({ limit: '32kb' }));
-app.use(systemRoutes);
+
 app.use('/api', async (req, res, next) => {
   await connectDB();
   next();
