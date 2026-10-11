@@ -31,6 +31,8 @@ const Order = model(
       },
       subtotal: Number,
       discount: Number,
+      gst: { type: Number, default: 0 },
+      gstRate: { type: Number, default: 0 },
       deliveryFee: Number,
       total: Number,
       currency: { type: String, default: 'USD' },

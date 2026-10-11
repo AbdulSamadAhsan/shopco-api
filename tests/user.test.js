@@ -40,3 +40,13 @@ test('duplicate email returns conflict', async t => {
  mock.method(User,'create',async()=>{throw Object.assign(new Error('duplicate'),{code:11000});});
  await assert.rejects(createUser({firstName:'Ada',lastName:'Lovelace',email:'ada@example.com',password:'long-test-password'}),{status:409});
 });
+
+test('mobile number persists through registration and login',async t=>{
+ setup(t);let stored;
+ mock.method(User,'create',async value=>(stored={_id:'aaaaaaaaaaaaaaaaaaaaaaaa',...value}));
+ const registered=await createUser({firstName:'Mobile',lastName:'Test',phone:'+92 300 1234567',email:'mobile@example.com',password:'long-test-password'});
+ assert.equal(stored.phone,'+92 300 1234567');assert.equal(registered.user.phone,stored.phone);
+ mock.method(User,'findOne',()=>({select:async()=>stored}));
+ assert.equal((await loginUser({email:stored.email,password:'long-test-password'})).user.phone,stored.phone);
+ await assert.rejects(createUser({firstName:'Mobile',lastName:'Test',phone:'abc',email:'mobile@example.com',password:'long-test-password'}),{status:400});
+});

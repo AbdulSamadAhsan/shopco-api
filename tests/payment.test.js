@@ -96,3 +96,10 @@ test('cancel expires an open session and restores stock',async t=>{
  assert.equal(result.status,'expired');assert.equal(client.checkout.sessions.expire.mock.callCount(),1);
  assert.equal(Product.updateOne.mock.callCount(),1);
 });
+
+test('GST is exactly 16 percent of discounted merchandise, excluding delivery', async t => {
+ const {order}=fixture(t); order.gst=10.24; order.total=89.24;
+ const params=service.sessionParameters(order);
+ assert.equal(params.line_items.find(l=>l.price_data.product_data.name==='GST (16%)').price_data.unit_amount,1024);
+ assert.equal(params.line_items.reduce((n,l)=>n+l.price_data.unit_amount*l.quantity,0),8924);
+});

@@ -52,6 +52,7 @@ function sessionParameters(order) {
   const lines = [];
   if (merchandise > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: merchandise,
     product_data: { name: 'SHOP.CO merchandise', description: order.items.map(i => `${i.name} (${i.size}, ${i.color}) x${i.quantity}`).join('; ').slice(0, 500) } } });
+  if (cents(order.gst || 0) > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: cents(order.gst), product_data: { name: 'GST (16%)' } } });
   if (cents(order.deliveryFee) > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: cents(order.deliveryFee), product_data: { name: 'Delivery' } } });
   return {
     mode: 'payment', allowed_payment_method_types: ['card'], line_items: lines,

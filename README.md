@@ -144,3 +144,16 @@ this integration. The former `/api/pay` echo endpoint has been removed.
 Both names are required for this format (trimmed, maximum 100 characters each).
 Register, login, and `/auth/me` return both fields plus the combined `name`.
 Older clients that send `name` and existing full-name accounts remain supported.
+
+## GST and mobile details
+
+New quotes and orders include `gst` and `gstRate` (0.16). GST is rounded to cents
+on merchandise after discounts; delivery is excluded from the tax base. Stripe
+Checkout has a separate GST line, and its total must match the stored order.
+Existing orders retain their original totals.
+
+Registration accepts `phone` (7–15 digits, allowing a leading +, spaces, parentheses
+and hyphens). Authentication responses include it for checkout autofill. Older
+accounts without a phone still work and can enter it at checkout. Shipping city
+and country are optional for compatibility with older clients, and are no longer
+collected by the current checkout form.

@@ -25,13 +25,16 @@ async function quote(items, promoCode, session) {
   });
   const cents = lines.reduce((sum, i) => sum + Math.round(i.price * 100) * i.quantity, 0);
   const discount = promoCode === 'WELCOME20' ? Math.round(cents * 0.2) : 0;
+  const gst = Math.round((cents - discount) * 0.16);
   const delivery = lines.length ? 1500 : 0;
   return {
     items: lines,
     subtotal: cents / 100,
     discount: discount / 100,
+    gst: gst / 100,
+    gstRate: 0.16,
     deliveryFee: delivery / 100,
-    total: (cents - discount + delivery) / 100,
+    total: (cents - discount + gst + delivery) / 100,
     currency: 'USD',
   };
 }
