@@ -36,6 +36,21 @@ function fixtures() {
 }
 afterEach(() => mock.restoreAll());
 
+test('both payment methods accept shipping without city and country', async () => {
+  fixtures();
+  const input = body();
+  delete input.shipping.city;
+  delete input.shipping.country;
+  for (const method of ['cash_on_delivery', 'stripe']) {
+    const result = await createOrder(userId, { ...input, paymentMethod: method }, key, method);
+    assert.equal(result.order.paymentMethod, method);
+    assert.equal(result.order.shipping.city, undefined);
+    assert.equal(result.order.shipping.country, undefined);
+    assert.equal(result.order.total, 47);
+  }
+  assert.throws(() => validateOrder({ ...input, shipping: { ...input.shipping, address: '' } }, key), { status: 400 });
+});
+
 test('invalid requests fail before database access', async () => {
   const lookup = mock.method(Order, 'findOne', async () => { throw new Error('Must not query'); });
   const invalid = [null, {}, { ...body(), items: [] }, { ...body(), shipping: {} }, { ...body(), paymentMethod: 'card' }, { ...body(), promoCode: {} }];

@@ -26,8 +26,11 @@ function validateOrder(data, key, paymentMethod = 'cash_on_delivery') {
   });
   if (!object(data.shipping)) fail('Shipping details are required');
   const shipping = {};
-  for (const field of ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zip', 'country'])
+  for (const field of ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zip', 'country']) {
+    // Preserve old request hashes while allowing the simplified checkout.
+    if (['city', 'country'].includes(field) && (data.shipping[field] === undefined || data.shipping[field] === '')) continue;
     shipping[field] = text(data.shipping[field], `Shipping ${field}`);
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shipping.email)) fail('Shipping email is invalid');
   if (data.paymentMethod !== undefined && data.paymentMethod !== paymentMethod)
     fail('Invalid payment method for this endpoint');
