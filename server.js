@@ -19,6 +19,7 @@ const { filters } = require('./controllers/productController.js');
 const app = express();
 app.disable('x-powered-by');
 app.use(helmet());
+app.get('/', (req, res) => res.json({ success: true, service: 'SHOP.CO API', status: 'running', health: '/api/health', products: '/api/products' }));
 app.use(cors({
   origin(origin, callback) {
     const allowed = (process.env.CORS_ORIGINS || 'https://reactshopco.vercel.app,http://localhost:5173')
@@ -37,6 +38,7 @@ app.use('/api', async (req, res, next) => {
   await connectDB();
   next();
 });
+app.get('/api/health', (req, res) => res.json({ success: true, service: 'SHOP.CO API', database: 'connected' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);

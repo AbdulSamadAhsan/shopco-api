@@ -64,6 +64,7 @@ async function listOrders(userId) {
 }
 
 async function getOrder(userId, orderId) {
+  if (!mongoose.isObjectIdOrHexString(orderId)) fail(404, 'Order not found');
   const order = await Order.findOne({ _id: orderId, user: userId }).lean();
   if (!order) fail(404, 'Order not found');
   return order;
