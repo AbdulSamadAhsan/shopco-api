@@ -4,6 +4,8 @@ const User = model(
   new Schema(
     {
       name: String,
+      firstName: { type: String, trim: true, maxlength: 100 },
+      lastName: { type: String, trim: true, maxlength: 100 },
       email: { type: String, unique: true, required: true },
       password: { type: String, required: true, select: false },
     },

@@ -3,7 +3,12 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models/User.js');
 const { secret } = require('../config/jwtSecret.js');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
-const publicUser = (user) => ({ _id: user._id, name: user.name, email: user.email });
+function publicUser(user) {
+  const [legacyFirst = '', ...legacyLast] = (user.name || '').trim().split(/\s+/);
+  const firstName = user.firstName || legacyFirst;
+  const lastName = user.lastName || legacyLast.join(' ');
+  return { _id: user._id, name: [firstName, lastName].filter(Boolean).join(' '), firstName, lastName, email: user.email };
+}
 const token = (user) =>
   jwt.sign({}, secret(), {
     subject: String(user._id),
@@ -14,8 +19,25 @@ const token = (user) =>
   });
 async function createUser(data, minPassword = 10) {
   secret();
-  const input = { name: String(data?.name || '').trim(), email: String(data?.email || '').trim().toLowerCase(), password: String(data?.password || '') };
-  const user = await User.create({ ...input, password: await bcrypt.hash(input.password, 12) });
+  const clean = value => typeof value === 'string' ? value.trim() : '';
+  const legacy = clean(data?.name).split(/\s+/);
+  const hasNames = data?.firstName !== undefined || data?.lastName !== undefined;
+  const firstName = hasNames ? clean(data.firstName) : legacy.shift();
+  const lastName = hasNames ? clean(data.lastName) : legacy.join(' ');
+  if (!firstName || (hasNames && !lastName) || firstName.length > 100 || lastName.length > 100)
+    fail(400, 'First and last name are required and must be at most 100 characters each');
+  const email = clean(data?.email).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) fail(400, 'A valid email is required');
+  const password = typeof data?.password === 'string' ? data.password : '';
+  if (password.length < minPassword || Buffer.byteLength(password) > 72)
+    fail(400, `Password must be at least ${minPassword} characters and at most 72 bytes`);
+  let user;
+  try {
+    user = await User.create({ firstName, lastName, name: [firstName, lastName].filter(Boolean).join(' '), email, password: await bcrypt.hash(password, 12) });
+  } catch (error) {
+    if (error.code === 11000) fail(409, 'An account with this email already exists');
+    throw error;
+  }
   return { user: publicUser(user), token: token(user) };
 }
 async function loginUser(data) {
