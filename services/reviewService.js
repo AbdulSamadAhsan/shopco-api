@@ -3,6 +3,7 @@ const { Product } = require('../models/Product.js');
 const { Review } = require('../models/Review.js');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 async function listReviews(productId) {
+  if (!mongoose.isObjectIdOrHexString(productId)) fail(404, 'Product not found');
   return await Review.find({ product: productId })
     .sort({ createdAt: -1 })
     .limit(100)

@@ -1,9 +1,11 @@
 const { Product } = require('../models/Product.js');
+const mongoose = require('mongoose');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 
 async function listProducts(query) {
   const q = { page: 1, limit: 24, sort: 'newest', ...(query || {}) },
     filter = { active: true };
+  if (q.sale === 'true') filter.$expr = { $gt: ['$oldPrice', '$price'] };
   for (const key of ['category', 'brand', 'style']) if (q[key]) filter[key] = q[key];
   if (q.color) filter.colors = q.color;
   if (q.size) filter.sizes = q.size;
@@ -43,6 +45,7 @@ async function filters() {
 const categories = () => Product.distinct('category', { active: true });
 const brands = () => Product.distinct('brand', { active: true });
 async function getProduct(productId) {
+  if (!mongoose.isObjectIdOrHexString(productId)) fail(404, 'Product not found');
   const product = await Product.findOne({ _id: productId, active: true }).lean();
   if (!product) fail(404, 'Product not found');
   return product;
