@@ -6,8 +6,8 @@ const { Order } = require('../models/Order.js');
 const { quote } = require('./checkoutService.js');
 const { validateOrder } = require('./orderValidation.js');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
-async function createOrder(userId, data, idempotencyKey) {
-  const input = validateOrder(data, idempotencyKey);
+async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_on_delivery') {
+  const input = validateOrder(data, idempotencyKey, paymentMethod);
   const key = idempotencyKey;
   const hash = createHash('sha256').update(JSON.stringify(input)).digest('hex');
   const lookup = { user: userId, idempotencyKey: key };
@@ -37,11 +37,16 @@ async function createOrder(userId, data, idempotencyKey) {
             requestHash: hash,
             shipping: input.shipping,
             paymentMethod: input.paymentMethod,
+            ...(paymentMethod === 'stripe' && {
+              status: 'awaiting_payment',
+              stripeExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+            }),
           },
         ],
         { session },
       );
-      await Cart.updateOne({ user: userId }, { items: [] }, { session });
+      if (paymentMethod === 'cash_on_delivery')
+        await Cart.updateOne({ user: userId }, { items: [] }, { session });
     });
   } catch (error) {
     if (error.code !== 11000) throw error;

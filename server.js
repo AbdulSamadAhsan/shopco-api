@@ -26,6 +26,11 @@ app.use(cors({
     callback(null, !origin || allowed.includes(origin));
   },
 }));
+// Stripe signature verification requires the original bytes, before JSON parsing.
+app.post('/api/pay/webhook', express.raw({ type: 'application/json', limit: '1mb' }), async (req, res) => {
+  await connectDB();
+  await require('./controllers/paymentController').webhook(req, res);
+});
 app.use(express.json({ limit: '32kb' }));
 
 app.use('/api', async (req, res, next) => {

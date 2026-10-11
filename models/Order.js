@@ -36,9 +36,12 @@ const Order = model(
       currency: { type: String, default: 'USD' },
       paymentMethod: { type: String, default: 'cash_on_delivery' },
       paymentStatus: { type: String, default: 'unpaid' },
+      stripeSessionId: String,
+      stripePaymentIntentId: String,
+      stripeExpiresAt: Date,
       status: {
         type: String,
-        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+        enum: ['awaiting_payment', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'],
         default: 'pending',
       },
     },

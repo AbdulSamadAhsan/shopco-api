@@ -17,7 +17,8 @@
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.10.2"
+    "mongoose": "^9.10.2",
+    "stripe": "23.0.0"
   },
   "main": "server.js"
 }

@@ -112,3 +112,35 @@ Run `npm test` with Node.js 24. The suite exercises the real router, JWT middlew
 validation and checkout calculations with mocked database operations. It does not
 require database credentials or change stored data. Verify real transaction rollback
 and concurrent inventory updates separately against a MongoDB replica set.
+
+## Stripe test checkout
+
+Configure server-only `STRIPE_SECRET_KEY` (must start with `sk_test_`) and
+`STRIPE_WEBHOOK_SECRET` in Vercel. `FRONTEND_URL` defaults to
+`https://reactshopco.vercel.app`. Never put these secrets in frontend variables.
+
+- `POST /api/pay/checkout`: authenticated; same items/shipping/promo body as an
+  order and an `Idempotency-Key`; returns `url`, `sessionId`, and `orderId`.
+- `GET /api/pay/checkout/:sessionId`: authenticated owner-only Stripe verification;
+  returns `{ order, paid, status }` inside the usual success/data response.
+- `POST /api/pay/checkout/:sessionId/cancel`: expires an unpaid session and restores
+  inventory exactly once. Paid sessions remain paid.
+- `POST /api/pay/webhook`: raw-body, signature-verified Stripe callback. Subscribe
+  to `checkout.session.completed` and `checkout.session.expired` in test mode.
+
+Inventory is reserved transactionally before creating the Stripe session. Orders
+remain `awaiting_payment`/`unpaid` until Stripe confirms the expected amount,
+currency, owner and order. Sessions expire in one hour. Expiration callbacks
+cancel unpaid orders and restore stock; duplicate callbacks are harmless.
+Transient Stripe failures preserve the same order and idempotency key for retry.
+Monitor failed webhook deliveries and reconcile any reservation whose session
+creation never completed; no background reconciliation job is configured.
+Only card payments in test mode are enabled. Refunds and live payments are outside
+this integration. The former `/api/pay` echo endpoint has been removed.
+
+## Registration names
+
+`POST /api/auth/register` accepts `firstName`, `lastName`, `email`, and `password`.
+Both names are required for this format (trimmed, maximum 100 characters each).
+Register, login, and `/auth/me` return both fields plus the combined `name`.
+Older clients that send `name` and existing full-name accounts remain supported.

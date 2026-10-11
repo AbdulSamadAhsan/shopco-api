@@ -6,7 +6,7 @@ function text(value, field, max = 200) {
   return value.trim();
 }
 
-function validateOrder(data, key) {
+function validateOrder(data, key, paymentMethod = 'cash_on_delivery') {
   if (typeof key !== 'string' || !/^[\x21-\x7e]{8,100}$/.test(key))
     fail('Idempotency-Key must contain 8–100 non-whitespace ASCII characters');
   if (!object(data)) fail('Order body must be an object');
@@ -29,11 +29,11 @@ function validateOrder(data, key) {
   for (const field of ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zip', 'country'])
     shipping[field] = text(data.shipping[field], `Shipping ${field}`);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shipping.email)) fail('Shipping email is invalid');
-  if (data.paymentMethod !== undefined && data.paymentMethod !== 'cash_on_delivery')
-    fail('Only cash_on_delivery is supported');
+  if (data.paymentMethod !== undefined && data.paymentMethod !== paymentMethod)
+    fail('Invalid payment method for this endpoint');
   if (data.promoCode !== undefined && (typeof data.promoCode !== 'string' || data.promoCode.length > 100))
     fail('Promo code must be a string of at most 100 characters');
-  return { items, shipping, promoCode: data.promoCode || '', paymentMethod: 'cash_on_delivery' };
+  return { items, shipping, promoCode: data.promoCode || '', paymentMethod };
 }
 
 module.exports = { validateOrder };
