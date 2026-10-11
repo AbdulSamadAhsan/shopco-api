@@ -46,7 +46,7 @@ async function applySession(session) {
   return Order.findById(id);
 }
 
-function sessionParameters(order) {
+function sessionParameters(order, ui = 'hosted') {
   const origin = config.checkoutOrigin();
   const merchandise = cents(order.subtotal) - cents(order.discount);
   const lines = [];
@@ -60,8 +60,12 @@ function sessionParameters(order) {
     client_reference_id: String(order._id),
     metadata: { orderId: String(order._id), userId: String(order.user) },
     payment_intent_data: { metadata: { orderId: String(order._id) } },
-    success_url: `${origin}/checkout?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/checkout?payment=cancelled`,
+    ...(ui === 'elements' ? {
+      ui_mode: 'elements', return_url: `${origin}/checkout?session_id={CHECKOUT_SESSION_ID}`,
+    } : {
+      success_url: `${origin}/checkout?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/checkout?payment=cancelled`,
+    }),
     expires_at: Math.floor(new Date(order.stripeExpiresAt).getTime() / 1000),
   };
 }
@@ -76,7 +80,7 @@ async function startCheckout(userId, data, key) {
   try {
     session = order.stripeSessionId
       ? await stripe.checkout.sessions.retrieve(order.stripeSessionId)
-      : await stripe.checkout.sessions.create(sessionParameters(order), { idempotencyKey: `shopco-${order._id}` });
+      : await stripe.checkout.sessions.create(sessionParameters(order, data.checkoutUi), { idempotencyKey: `shopco-${order._id}` });
   } catch (error) {
     // An uncertain Stripe response must keep the reservation and the retry key.
     // Do not create a second session or mark this order as paid.
@@ -89,7 +93,10 @@ async function startCheckout(userId, data, key) {
     if (updated.paymentStatus === 'paid') return { order: updated, paid: true };
     fail(409, 'This checkout has expired. Start a new order.');
   }
-  return { orderId: String(order._id), sessionId: session.id, url: session.url };
+  return { orderId: String(order._id), sessionId: session.id, url: session.url,
+    ...(session.ui_mode === 'elements' && { clientSecret: session.client_secret,
+      customerName: [order.shipping.firstName, order.shipping.lastName].filter(Boolean).join(' ') }),
+  };
 }
 
 async function checkoutStatus(userId, sessionId) {

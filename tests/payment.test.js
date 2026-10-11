@@ -103,3 +103,21 @@ test('GST is exactly 16 percent of discounted merchandise, excluding delivery', 
  assert.equal(params.line_items.find(l=>l.price_data.product_data.name==='GST (16%)').price_data.unit_amount,1024);
  assert.equal(params.line_items.reduce((n,l)=>n+l.price_data.unit_amount*l.quantity,0),8924);
 });
+
+test('embedded card checkout returns an owner-scoped client secret and saved shipping name',async t=>{
+ const {order,session,client}=fixture(t);
+ order.shipping.firstName='Ada';order.shipping.lastName='van Rossum';
+ session.ui_mode='elements';session.client_secret='cs_test_example_secret_test';session.url=null;
+ const result=await service.startCheckout(order.user,{checkoutUi:'elements',customerName:'Untrusted name'},'request-key');
+ const [params]=client.checkout.sessions.create.mock.calls[0].arguments;
+ assert.equal(params.ui_mode,'elements');assert.ok(params.return_url.endsWith('/checkout?session_id={CHECKOUT_SESSION_ID}'));
+ assert.equal(params.success_url,undefined);assert.equal(params.cancel_url,undefined);
+ assert.equal(result.clientSecret,session.client_secret);assert.equal(result.customerName,'Ada van Rossum');
+});
+
+test('retrying a hosted session keeps its original redirect flow',async t=>{
+ const {order,client}=fixture(t);order.stripeSessionId='cs_test_example';
+ const result=await service.startCheckout(order.user,{checkoutUi:'elements'},'request-key');
+ assert.equal(client.checkout.sessions.create.mock.callCount(),0);
+ assert.equal(result.clientSecret,undefined);assert.ok(result.url.startsWith('https://checkout.stripe.com/'));
+});
