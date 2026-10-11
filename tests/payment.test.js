@@ -29,7 +29,7 @@ test('session totals are built from saved order amounts and retry key is stable'
  const result=await service.startCheckout(order.user,{total:1},'request-key');
  const [params,options]=client.checkout.sessions.create.mock.calls[0].arguments;
  assert.equal(params.line_items.reduce((sum,l)=>sum+l.quantity*l.price_data.unit_amount,0),7900);
- assert.deepEqual(params.payment_method_types,['card']);
+ assert.deepEqual(params.allowed_payment_method_types,['card']);
  assert.equal(options.idempotencyKey,'shopco-'+order._id);
  assert.equal(params.metadata.userId,order.user);
  assert.equal(result.sessionId,'cs_test_example');

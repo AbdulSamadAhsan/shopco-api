@@ -54,7 +54,7 @@ function sessionParameters(order) {
     product_data: { name: 'SHOP.CO merchandise', description: order.items.map(i => `${i.name} (${i.size}, ${i.color}) x${i.quantity}`).join('; ').slice(0, 500) } } });
   if (cents(order.deliveryFee) > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: cents(order.deliveryFee), product_data: { name: 'Delivery' } } });
   return {
-    mode: 'payment', payment_method_types: ['card'], line_items: lines,
+    mode: 'payment', allowed_payment_method_types: ['card'], line_items: lines,
     customer_email: order.shipping.email,
     client_reference_id: String(order._id),
     metadata: { orderId: String(order._id), userId: String(order.user) },
