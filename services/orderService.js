@@ -59,8 +59,9 @@ async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_o
   return { order, created };
 }
 
-async function listOrders(userId) {
-  return await Order.find({ user: userId }).sort({ createdAt: -1 }).limit(100).lean();
+async function listOrders(userId, before) {
+  if (before !== undefined && !mongoose.isObjectIdOrHexString(before)) fail(400, 'Invalid order history cursor');
+  return await Order.find({ user: userId, ...(before && { _id: { $lt: before } }) }).sort({ _id: -1 }).limit(100).lean();
 }
 
 async function getOrder(userId, orderId) {

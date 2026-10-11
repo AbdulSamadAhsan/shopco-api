@@ -9,7 +9,7 @@ const { Order } = require('../models/Order');
 const { Cart } = require('../models/Cart');
 const { User } = require('../models/User');
 const { validateOrder } = require('../services/orderValidation');
-const { createOrder } = require('../services/orderService');
+const { createOrder, listOrders, getOrder } = require('../services/orderService');
 const { errorHandler } = require('../middleware/errorHandler');
 const routes = require('../routes/orderRoutes');
 const { mock } = require('node:test');
@@ -35,6 +35,27 @@ function fixtures() {
   return { session, product };
 }
 afterEach(() => mock.restoreAll());
+
+test('order history pagination always stays scoped to the signed-in account', async () => {
+  let filter, sort, limit;
+  mock.method(Order, 'find', value => {
+    filter=value;
+    return {sort(value){sort=value;return this;},limit(value){limit=value;return this;},lean:async()=>[]};
+  });
+  await listOrders(userId);
+  assert.deepEqual(filter,{user:userId});
+  assert.deepEqual(sort,{_id:-1});assert.equal(limit,100);
+  await listOrders(userId,'cccccccccccccccccccccccc');
+  assert.deepEqual(filter,{user:userId,_id:{$lt:'cccccccccccccccccccccccc'}});
+  await assert.rejects(listOrders(userId,'invalid'),{status:400});
+});
+
+test('another account cannot retrieve an order by guessing its ID', async () => {
+  let filter;
+  mock.method(Order,'findOne',value=>{filter=value;return {lean:async()=>null};});
+  await assert.rejects(getOrder(userId,'cccccccccccccccccccccccc'),{status:404});
+  assert.deepEqual(filter,{_id:'cccccccccccccccccccccccc',user:userId});
+});
 
 test('both payment methods accept shipping without city and country', async () => {
   fixtures();

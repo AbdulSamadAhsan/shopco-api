@@ -8,7 +8,7 @@ async function createOrder(req, res) {
   );
   ok(res, order, created ? 201 : 200);
 }
-const listOrders = async (req, res) => ok(res, await service.listOrders(req.user._id));
+const listOrders = async (req, res) => ok(res, await service.listOrders(req.user._id, req.query.before));
 const getOrder = async (req, res) => ok(res, await service.getOrder(req.user._id, req.params.id));
 
 module.exports = { listOrders, getOrder, createOrder };
