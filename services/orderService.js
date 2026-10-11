@@ -4,10 +4,11 @@ const { Product } = require('../models/Product.js');
 const { Cart } = require('../models/Cart.js');
 const { Order } = require('../models/Order.js');
 const { quote } = require('./checkoutService.js');
+const { validateOrder } = require('./orderValidation.js');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 async function createOrder(userId, data, idempotencyKey) {
-  const input = data || {};
-  const key = String(idempotencyKey || '');
+  const input = validateOrder(data, idempotencyKey);
+  const key = idempotencyKey;
   const hash = createHash('sha256').update(JSON.stringify(input)).digest('hex');
   const lookup = { user: userId, idempotencyKey: key };
   let order = await Order.findOne(lookup);
@@ -16,6 +17,7 @@ async function createOrder(userId, data, idempotencyKey) {
     return { order, created: false };
   }
   const session = await mongoose.startSession();
+  let created = true;
   try {
     await session.withTransaction(async () => {
       const priced = await quote(input.items, input.promoCode, session);
@@ -45,10 +47,11 @@ async function createOrder(userId, data, idempotencyKey) {
     if (error.code !== 11000) throw error;
     order = await Order.findOne(lookup);
     if (!order || order.requestHash !== hash) fail(409, 'Idempotency key conflict');
+    created = false;
   } finally {
     await session.endSession();
   }
-  return { order, created: true };
+  return { order, created };
 }
 
 async function listOrders(userId) {

@@ -69,3 +69,46 @@ by 20%. Card processing, refunds, tax, shipment integration and email delivery a
 not implemented. The React checkout submission remains unconnected.
 
 Sample catalog data is not seeded automatically. Existing database records are not migrated by code changes.
+
+### Create an order
+
+POST `/api/orders` with `Authorization: Bearer <token>`,
+`Content-Type: application/json` and a unique `Idempotency-Key` header.
+The key must contain 8–100 non-whitespace ASCII characters.
+
+```json
+{
+  "items": [
+    { "productId": "aaaaaaaaaaaaaaaaaaaaaaaa", "quantity": 2, "size": "M", "color": "Black" }
+  ],
+  "shipping": {
+    "firstName": "Ada", "lastName": "Lovelace", "email": "ada@example.com",
+    "phone": "123456789", "address": "1 Main Street", "city": "London",
+    "state": "London", "zip": "12345", "country": "UK"
+  },
+  "promoCode": "WELCOME20",
+  "paymentMethod": "cash_on_delivery"
+}
+```
+
+Replace the example product ID and variants with an active catalog product.
+Orders require 1–100 items, each with an integer quantity of 1–10000.
+All shipping fields above are required strings of at most 200 characters.
+Payment defaults to cash on delivery; other methods are rejected.
+Client-supplied prices, totals, user IDs and statuses are ignored.
+
+A new order returns HTTP 201 with `{ success: true, data: order }`.
+A retry with the same key and normalized order details returns HTTP 200 without
+another stock decrement. A changed request using that key returns HTTP 409.
+Invalid input returns 400, missing/invalid authentication returns 401, and stock
+conflicts return 409. Failures return `{ success: false, message }`.
+Successful creation clears the authenticated user's cart in the same transaction.
+Ensure the Order collection's unique `(user, idempotencyKey)` index exists before
+serving checkout traffic (it is declared in the Mongoose model).
+
+### Tests
+
+Run `npm test` with Node.js 24. The suite exercises the real router, JWT middleware,
+validation and checkout calculations with mocked database operations. It does not
+require database credentials or change stored data. Verify real transaction rollback
+and concurrent inventory updates separately against a MongoDB replica set.

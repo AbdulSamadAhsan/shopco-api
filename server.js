@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const { connectDB } = require('./config/database.js');
+const { errorHandler } = require('./middleware/errorHandler.js');
 
 const authRoutes = require('./routes/authRoutes.js');
 const userRoutes = require('./routes/UserRoutes.js');
@@ -42,6 +43,7 @@ app.use('/api', orderRoutes);
 app.use('/api', reviewRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use("/api/pay",payRoutes)
+app.use(errorHandler);
 
   app.listen(process.env.PORT || 3000, () =>
     console.log('SHOP.CO API listening on port ' + (process.env.PORT || 3000)),
