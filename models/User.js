@@ -6,6 +6,7 @@ const User = model(
       name: String,
       firstName: { type: String, trim: true, maxlength: 100 },
       lastName: { type: String, trim: true, maxlength: 100 },
+      phone: { type: String, trim: true, maxlength: 30, default: '' },
       email: { type: String, unique: true, required: true },
       password: { type: String, required: true, select: false },
     },
