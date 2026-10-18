@@ -5,6 +5,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const { Product } = require('../models/Product');
+const { Coupon } = require('../models/Coupon');
 const { Order } = require('../models/Order');
 const { Cart } = require('../models/Cart');
 const { User } = require('../models/User');
@@ -24,6 +25,7 @@ function body() {
   };
 }
 function fixtures() {
+  mock.method(Coupon, 'findOne', () => ({ session: () => ({ lean: async () => ({ code: 'WELCOME20', active: true, type: 'percentage', value: 20, minSubtotal: 0 }) }) }));
   const session = { withTransaction: mock.fn(async (fn) => fn()), endSession: mock.fn(async () => {}) };
   mock.method(mongoose, 'startSession', async () => session);
   mock.method(Order, 'findOne', async () => null);

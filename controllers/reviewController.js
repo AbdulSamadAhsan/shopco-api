@@ -4,4 +4,5 @@ const listReviews = async (req, res) => ok(res, await service.listReviews(req.pa
 const createReview = async (req, res) =>
   ok(res, await service.createReview(req.user._id, req.user.name, req.params.id, req.body), 201);
 
-module.exports = { listReviews, createReview };
+const myReviews = async (req, res) => ok(res, await service.myReviews(req.user._id));
+module.exports = { listReviews, createReview, myReviews };
