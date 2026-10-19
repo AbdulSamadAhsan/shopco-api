@@ -1,159 +1,47 @@
-# SHOP.CO API
+# SHOP.CO E-commerce API
 
-Node.js 24, Express 5 and MongoDB/Mongoose backend for F:\shopco-react.
-Uses CommonJS (require and module.exports) and the folder structure of F:\shopapi.
+Node.js 24 e-commerce API for catalog, cart, orders, reviews, coupons, and Stripe payments.
 
-## Structure
+[Live deployment](https://shopco-api-psi.vercel.app)
 
-- server.js: starts the server.
-- server.js: configures middleware, mounts routes, and starts the server.
-- config/: database, JWT settings and response helpers.
-- routes/: URL definitions using express.Router().
-- controllers/: request handling and JSON responses.
-- services/: business logic, database access and checkout transactions.
-- models/: Mongoose models, one per file.
-- middleware/: authenticated-user access control only.
-- views/: reserved; the user interface is in the React project.
+## Overview
 
-## Run
+- Catalog, category, and brand routes
+- Authenticated and guest carts
+- Orders, coupons, reviews, and newsletter services
+- Stripe payment integration
+- Node.js test suite
 
-Run npm install, then npm run dev (development) or npm start.
-Set MONGO_URI, MONGO_DB_NAME, JWT_SECRET, PORT and CORS_ORIGINS in .env.
-JWT_SECRET must contain at least 32 characters. The default port is 3000.
-The local frontend setting is VITE_API_URL=http://localhost:3000/api.
-Restart Vite after changing its environment.
+## Stack
 
-The API exposes the customer routes listed below; system health and documentation routes are not included.
+Express, MongoDB / Mongoose, Stripe.
 
-## Customer endpoints
+## Run locally
 
-| Method | Path under /api | Purpose |
-|---|---|---|
-| POST | /auth/register, /auth/login | Register or sign in; returns token and user |
-| GET | /auth/me | Current authenticated user |
-| POST | /users/register, /users/login | shopapi-compatible response format |
-| GET | /products, /products/:id | Catalog and product details |
-| GET | /categories, /categories/:id | Category records |
-| GET | /brands, /brands/:id | Brand records |
-| GET | /filters | Catalog filter values |
-| GET, PUT, DELETE | /cart | Authenticated customer's cart |
-| GET, PUT | /guest-cart | Guest cart; X-Cart-Token required |
-| POST | /checkout/quote | Server-calculated prices and totals |
-| POST | /orders | Place an authenticated order; Idempotency-Key required |
-| GET | /orders, /orders/:id | Current customer's orders |
-| GET, POST | /products/:id/reviews | Read reviews or submit an authenticated review |
-| POST | /newsletter | Store email subscription with consent: true |
+Requires Node.js `24.x`.
 
-Authentication uses Authorization: Bearer <token>. Tokens expire after seven days.
-Users can only read their own orders. Registration does not accept a role.
-Catalog management and order-status management endpoints are not available.
-
-Product filters: search, category, brand, style, color, size, minPrice, maxPrice,
-featured, page, limit and sort (newest, price-asc, price-desc, rating, popular, name).
-Responses use { success: true, data }; failures use { success: false, message, errors? }.
-
-## Carts and checkout
-
-Each cart item contains productId, quantity, size and color. Prices and inventory
-come from MongoDB. Guest carts use a random 64-character hexadecimal X-Cart-Token;
-only its hash is stored. Updates require the current revision and accept promoCode.
-
-Orders accept items, shipping, optional promoCode and paymentMethod: cash_on_delivery.
-Shipping contains firstName, lastName, email, phone, address, city, state, zip and country.
-Send an Idempotency-Key of 8–100 characters; reuse the same key and body on retries.
-Stock reservation and order creation are transactional, requiring MongoDB Atlas
-or a replica set. Orders start pending and unpaid.
-
-Amounts are USD; delivery is $15 per nonempty order. WELCOME20 discounts merchandise
-by 20%. Card processing, refunds, tax, shipment integration and email delivery are
-not implemented. The React checkout submission remains unconnected.
-
-Sample catalog data is not seeded automatically. Existing database records are not migrated by code changes.
-
-### Create an order
-
-POST `/api/orders` with `Authorization: Bearer <token>`,
-`Content-Type: application/json` and a unique `Idempotency-Key` header.
-The key must contain 8–100 non-whitespace ASCII characters.
-
-```json
-{
-  "items": [
-    { "productId": "aaaaaaaaaaaaaaaaaaaaaaaa", "quantity": 2, "size": "M", "color": "Black" }
-  ],
-  "shipping": {
-    "firstName": "Ada", "lastName": "Lovelace", "email": "ada@example.com",
-    "phone": "123456789", "address": "1 Main Street", "city": "London",
-    "state": "London", "zip": "12345", "country": "UK"
-  },
-  "promoCode": "WELCOME20",
-  "paymentMethod": "cash_on_delivery"
-}
+```bash
+git clone https://github.com/AbdulSamadAhsan/shopco-api.git
+cd shopco-api
+npm install
 ```
 
-Replace the example product ID and variants with an active catalog product.
-Orders require 1–100 items, each with an integer quantity of 1–10000.
-All shipping fields above are required strings of at most 200 characters.
-Payment defaults to cash on delivery; other methods are rejected.
-Client-supplied prices, totals, user IDs and statuses are ignored.
+Copy `.env.example` to `.env` and configure the values for your local environment before starting. Use your own database credentials and freshly generated secrets.
 
-A new order returns HTTP 201 with `{ success: true, data: order }`.
-A retry with the same key and normalized order details returns HTTP 200 without
-another stock decrement. A changed request using that key returns HTTP 409.
-Invalid input returns 400, missing/invalid authentication returns 401, and stock
-conflicts return 409. Failures return `{ success: false, message }`.
-Successful creation clears the authenticated user's cart in the same transaction.
-Ensure the Order collection's unique `(user, idempotencyKey)` index exists before
-serving checkout traffic (it is declared in the Mongoose model).
+```bash
+npm run dev
+```
 
-### Tests
+Use the local URL printed by the development server.
 
-Run `npm test` with Node.js 24. The suite exercises the real router, JWT middleware,
-validation and checkout calculations with mocked database operations. It does not
-require database credentials or change stored data. Verify real transaction rollback
-and concurrent inventory updates separately against a MongoDB replica set.
+## Available checks
 
-## Stripe test checkout
+| Command | Script |
+| --- | --- |
+| `npm run test` | `node --test` |
 
-Configure server-only `STRIPE_SECRET_KEY` (must start with `sk_test_`) and
-`STRIPE_WEBHOOK_SECRET` in Vercel. `FRONTEND_URL` defaults to
-`https://reactshopco.vercel.app`. Never put these secrets in frontend variables.
+These commands are defined by the project; documentation updates do not imply they have been run.
 
-- `POST /api/pay/checkout`: authenticated; same items/shipping/promo body as an
-  order and an `Idempotency-Key`; returns `url`, `sessionId`, and `orderId`.
-- `GET /api/pay/checkout/:sessionId`: authenticated owner-only Stripe verification;
-  returns `{ order, paid, status }` inside the usual success/data response.
-- `POST /api/pay/checkout/:sessionId/cancel`: expires an unpaid session and restores
-  inventory exactly once. Paid sessions remain paid.
-- `POST /api/pay/webhook`: raw-body, signature-verified Stripe callback. Subscribe
-  to `checkout.session.completed` and `checkout.session.expired` in test mode.
+## Author
 
-Inventory is reserved transactionally before creating the Stripe session. Orders
-remain `awaiting_payment`/`unpaid` until Stripe confirms the expected amount,
-currency, owner and order. Sessions expire in one hour. Expiration callbacks
-cancel unpaid orders and restore stock; duplicate callbacks are harmless.
-Transient Stripe failures preserve the same order and idempotency key for retry.
-Monitor failed webhook deliveries and reconcile any reservation whose session
-creation never completed; no background reconciliation job is configured.
-Only card payments in test mode are enabled. Refunds and live payments are outside
-this integration. The former `/api/pay` echo endpoint has been removed.
-
-## Registration names
-
-`POST /api/auth/register` accepts `firstName`, `lastName`, `email`, and `password`.
-Both names are required for this format (trimmed, maximum 100 characters each).
-Register, login, and `/auth/me` return both fields plus the combined `name`.
-Older clients that send `name` and existing full-name accounts remain supported.
-
-## GST and mobile details
-
-New quotes and orders include `gst` and `gstRate` (0.16). GST is rounded to cents
-on merchandise after discounts; delivery is excluded from the tax base. Stripe
-Checkout has a separate GST line, and its total must match the stored order.
-Existing orders retain their original totals.
-
-Registration accepts `phone` (7–15 digits, allowing a leading +, spaces, parentheses
-and hyphens). Authentication responses include it for checkout autofill. Older
-accounts without a phone still work and can enter it at checkout. Shipping city
-and country are optional for compatibility with older clients, and are no longer
-collected by the current checkout form.
+[Syed Abdul Samad Ahsan](https://github.com/AbdulSamadAhsan)
