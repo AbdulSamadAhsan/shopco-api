@@ -25,7 +25,7 @@ test('invalid, disabled, expired and below-minimum coupons cannot discount check
 });
 test('checkout uses database coupon before GST and preserves delivery fee', async () => {
   fixture({ ...valid, type: 'fixed', value: 10 });
-  mock.method(Product, 'find', () => ({ session() { return this; }, lean: async () => [{ _id: 'p1', name: 'Shirt', price: 50, stock: 10, sizes: ['M'], colors: ['Blue'] }] }));
-  const totals = await quote([{ productId: 'p1', size: 'M', color: 'Blue', quantity: 2 }], 'SAVE10');
+  mock.method(Product, 'find', () => ({ session() { return this; }, lean: async () => [{ _id: 'aaaaaaaaaaaaaaaaaaaaaaaa', name: 'Shirt', price: 50, stock: 10, sizes: ['M'], colors: ['Blue'] }] }));
+  const totals = await quote([{ productId: 'aaaaaaaaaaaaaaaaaaaaaaaa', size: 'M', color: 'Blue', quantity: 2 }], 'SAVE10');
   assert.equal(totals.subtotal, 100); assert.equal(totals.discount, 10); assert.equal(totals.gst, 14.4); assert.equal(totals.deliveryFee, 15); assert.equal(totals.total, 119.4);
 });

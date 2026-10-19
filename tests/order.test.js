@@ -6,7 +6,6 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const { Product } = require('../models/Product');
 const { Coupon } = require('../models/Coupon');
-const emails = require('../services/orderEmailService');
 const { Order } = require('../models/Order');
 const { Cart } = require('../models/Cart');
 const { User } = require('../models/User');
@@ -26,8 +25,6 @@ function body() {
   };
 }
 function fixtures() {
-  mock.method(emails, 'enqueue', async () => {});
-  mock.method(emails, 'deliver', async () => ({ status: 'sent' }));
   mock.method(Coupon, 'findOne', () => ({ session: () => ({ lean: async () => ({ code: 'WELCOME20', active: true, type: 'percentage', value: 20, minSubtotal: 0 }) }) }));
   const session = { withTransaction: mock.fn(async (fn) => fn()), endSession: mock.fn(async () => {}) };
   mock.method(mongoose, 'startSession', async () => session);
@@ -72,6 +69,7 @@ test('both payment methods accept shipping without city and country', async () =
     assert.equal(result.order.paymentMethod, method);
     assert.equal(result.order.shipping.city, undefined);
     assert.equal(result.order.shipping.country, undefined);
+    assert.equal(result.order.gst, 5.12);
     assert.equal(result.order.total, 52.12);
   }
   assert.throws(() => validateOrder({ ...input, shipping: { ...input.shipping, address: '' } }, key), { status: 400 });
@@ -99,6 +97,7 @@ test('order uses trusted prices, ownership, defaults and transactional stock/car
   assert.equal(result.order.user, userId);
   assert.equal(result.order.subtotal, 40);
   assert.equal(result.order.discount, 8);
+  assert.equal(result.order.gst, 5.12);
   assert.equal(result.order.total, 52.12);
   assert.equal(result.order.items[0].price, 20);
   assert.equal(result.order.paymentMethod, 'cash_on_delivery');
@@ -190,4 +189,17 @@ test('HTTP order route enforces JWT and returns JSON 400, 201, 200 and 409', asy
   Order.findOne.mock.mockImplementation(async () => payload.data);
   assert.equal((await send(body(), headers)).status, 200);
   assert.equal((await send({ ...body(), promoCode: '' }, headers)).status, 409);
+});
+
+test('orders no longer require city or country', async () => {
+ const input=body(); delete input.shipping.city; delete input.shipping.country;
+ const validated=validateOrder(input,key);
+ assert.equal(validated.shipping.city,undefined); assert.equal(validated.shipping.country,undefined);
+});
+test('GST rounds once in cents after discount; empty carts have zero totals',async()=>{
+ const {product}=fixtures(); const {quote}=require('../services/checkoutService');
+ product.price=19.99;
+ const priced=await quote([{productId,quantity:1,size:'M',color:'Black'}],'WELCOME20');
+ assert.equal(priced.discount,4); assert.equal(priced.gst,2.56); assert.equal(priced.total,33.55);
+ const empty=await quote([]);assert.equal(empty.gst,0);assert.equal(empty.total,0);
 });

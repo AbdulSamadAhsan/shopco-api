@@ -8,6 +8,15 @@ const {listReviews} = require('../services/reviewService');
 const {errorHandler} = require('../middleware/errorHandler');
 
 afterEach(() => mock.restoreAll());
+test('cart quotes reject invalid quantities and product IDs before database access', async () => {
+  const {quote}=require('../services/checkoutService');
+  const lookup=mock.method(Product,'find',()=>{throw new Error('Must not query')});
+  const item={productId:'aaaaaaaaaaaaaaaaaaaaaaaa',quantity:1,size:'M',color:'Black'};
+  for(const quantity of [-1,0,1.5,'2',null,10001])
+    await assert.rejects(quote([{...item,quantity}]),{status:400});
+  await assert.rejects(quote([{...item,productId:'bad'}]),{status:400});
+  assert.equal(lookup.mock.callCount(),0);
+});
 test('invalid product links return not-found before database access', async () => {
   const lookup = mock.method(Product, 'findOne', () => { throw new Error('Unexpected lookup'); });
   await assert.rejects(getProduct('missing-product'), {status:404});
