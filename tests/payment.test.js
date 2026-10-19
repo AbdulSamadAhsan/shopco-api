@@ -7,8 +7,10 @@ const orders = require('../services/orderService');
 const service = require('../services/paymentService');
 const { Order } = require('../models/Order');
 const { Product } = require('../models/Product');
+const emails = require('../services/orderEmailService');
 afterEach(()=>mock.restoreAll());
 function fixture(t) {
+ mock.method(emails,'enqueue',async()=>{});mock.method(emails,'deliver',async()=>({status:'sent'}));
  const old = process.env.STRIPE_WEBHOOK_SECRET; process.env.STRIPE_WEBHOOK_SECRET='whsec_unit_test';
  t.after(()=>{if(old===undefined) delete process.env.STRIPE_WEBHOOK_SECRET; else process.env.STRIPE_WEBHOOK_SECRET=old;});
  const order={_id:'aaaaaaaaaaaaaaaaaaaaaaaa',user:'bbbbbbbbbbbbbbbbbbbbbbbb',status:'awaiting_payment',paymentStatus:'unpaid',paymentMethod:'stripe',total:79,subtotal:80,discount:16,deliveryFee:15,currency:'USD',shipping:{email:'test@example.com'},items:[{productId:'cccccccccccccccccccccccc',quantity:1,name:'Shorts',size:'M',color:'green'}],stripeExpiresAt:new Date(Date.now()+3600000)};
@@ -96,3 +98,12 @@ test('cancel expires an open session and restores stock',async t=>{
  assert.equal(result.status,'expired');assert.equal(client.checkout.sessions.expire.mock.callCount(),1);
  assert.equal(Product.updateOne.mock.callCount(),1);
 });
+
+
+test('GST is included in saved-order Stripe line totals', async t => {
+ const { order } = fixture(t);
+ order.gst = 10.24; order.gstRate = 0.16; order.total = 89.24;
+ const params = service.sessionParameters(order);
+ assert.equal(params.line_items.reduce((sum,line)=>sum+line.quantity*line.price_data.unit_amount,0),8924);
+});
+

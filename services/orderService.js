@@ -5,6 +5,7 @@ const { Cart } = require('../models/Cart.js');
 const { Order } = require('../models/Order.js');
 const { quote } = require('./checkoutService.js');
 const { validateOrder } = require('./orderValidation.js');
+const emails = require('./orderEmailService');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_on_delivery') {
   const input = validateOrder(data, idempotencyKey, paymentMethod);
@@ -14,6 +15,7 @@ async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_o
   let order = await Order.findOne(lookup);
   if (order) {
     if (order.requestHash !== hash) fail(409, 'Idempotency key was already used with different details');
+    if (paymentMethod === 'cash_on_delivery') await emails.deliver(order._id);
     return { order, created: false };
   }
   const session = await mongoose.startSession();
@@ -47,6 +49,7 @@ async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_o
       );
       if (paymentMethod === 'cash_on_delivery')
         await Cart.updateOne({ user: userId }, { items: [] }, { session });
+      if (paymentMethod === 'cash_on_delivery') await emails.enqueue(order._id, session);
     });
   } catch (error) {
     if (error.code !== 11000) throw error;
@@ -56,6 +59,7 @@ async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_o
   } finally {
     await session.endSession();
   }
+  if (paymentMethod === 'cash_on_delivery') await emails.deliver(order._id);
   return { order, created };
 }
 

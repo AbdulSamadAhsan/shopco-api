@@ -51,17 +51,5 @@ async function getProduct(productId) {
   return product;
 }
 
-async function createProduct(data) {
-  const product = { ...(data || {}) };
-  if (!product.slug || !product.name || product.price === undefined || !product.image) {
-    const error = new Error('name, slug, price and image are required');
-    error.status = 400;
-    throw error;
-  }
-  if (product.oldPrice !== undefined && product.price < product.oldPrice) {
-    product.discount = `-${Math.round((1 - product.price / product.oldPrice) * 100)}%`;
-  }
-  return Product.findOneAndUpdate({ slug: product.slug }, { $set: product }, { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true });
-}
 
-module.exports = { listProducts, filters, categories, brands, getProduct, createProduct };
+module.exports = { listProducts, filters, categories, brands, getProduct };

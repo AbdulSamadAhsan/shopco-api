@@ -1,4 +1,5 @@
 const { Product } = require('../models/Product.js');
+const { couponDiscount } = require('./couponService');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 async function quote(items, promoCode, session) {
   const rows = await Product.find({ _id: { $in: items.map((i) => i.productId) }, active: true })
@@ -15,14 +16,18 @@ async function quote(items, promoCode, session) {
     return { ...i, name: p.name, image: p.image, price: p.price };
   });
   const cents = lines.reduce((sum, i) => sum + Math.round(i.price * 100) * i.quantity, 0);
-  const discount = promoCode === 'WELCOME20' ? Math.round(cents * 0.2) : 0;
+  const discount = await couponDiscount(promoCode, cents, session);
+  const gstRate = 0.16;
+  const gst = Math.round((cents - discount) * gstRate);
   const delivery = lines.length ? 1500 : 0;
   return {
     items: lines,
     subtotal: cents / 100,
     discount: discount / 100,
+    gst: gst / 100,
+    gstRate,
     deliveryFee: delivery / 100,
-    total: (cents - discount + delivery) / 100,
+    total: (cents - discount + gst + delivery) / 100,
     currency: 'USD',
   };
 }

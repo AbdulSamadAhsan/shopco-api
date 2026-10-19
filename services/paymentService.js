@@ -3,6 +3,7 @@ const config = require('../config/stripe');
 const orders = require('./orderService');
 const { Order } = require('../models/Order');
 const { Product } = require('../models/Product');
+const emails = require('./orderEmailService');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 const cents = value => Math.round(value * 100);
 
@@ -37,12 +38,14 @@ async function applySession(session) {
         { session: transaction, returnDocument: 'after' },
       );
       if (!changed) return;
+      if (paid) await emails.enqueue(changed._id, transaction);
       if (expired) {
         for (const line of changed.items)
           await Product.updateOne({ _id: line.productId }, { $inc: { stock: line.quantity, sales: -line.quantity } }, { session: transaction });
       }
     });
   } finally { await transaction.endSession(); }
+  if (paid) await emails.deliver(id);
   return Order.findById(id);
 }
 
@@ -52,6 +55,7 @@ function sessionParameters(order) {
   const lines = [];
   if (merchandise > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: merchandise,
     product_data: { name: 'SHOP.CO merchandise', description: order.items.map(i => `${i.name} (${i.size}, ${i.color}) x${i.quantity}`).join('; ').slice(0, 500) } } });
+  if (cents(order.gst || 0) > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: cents(order.gst), product_data: { name: 'GST' } } });
   if (cents(order.deliveryFee) > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: cents(order.deliveryFee), product_data: { name: 'Delivery' } } });
   return {
     mode: 'payment', allowed_payment_method_types: ['card'], line_items: lines,

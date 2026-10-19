@@ -1,0 +1,16 @@
+const escape = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+function orderEmail(order) {
+  const currency = order.currency || 'USD';
+  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(value || 0));
+  const id = String(order._id);
+  const shipping = order.shipping || {};
+  const name = [shipping.firstName, shipping.lastName].filter(Boolean).join(' ') || 'Customer';
+  const address = [name, shipping.address, shipping.city, shipping.state, shipping.zip, shipping.country, shipping.phone].filter(Boolean);
+  const payment = order.paymentMethod === 'stripe' ? 'Paid by card' : 'Cash on delivery — pay when your order arrives';
+  const totals = [['Subtotal', order.subtotal], ['Discount', -Number(order.discount || 0)], ['GST', order.gst || 0], ['Delivery', order.deliveryFee], ['Total', order.total]];
+  const items = order.items || [];
+  const text = [`Hi ${name},`, '', 'Thank you! Your SHOP.CO order is confirmed.', `Order #${id}`, `Payment: ${payment}`, '', ...items.map(item => `${item.name} | Size: ${item.size || 'Standard'} | Color: ${item.color || 'Standard'} | Qty: ${item.quantity} | Unit price: ${money(item.price)} | Line total: ${money(item.price * item.quantity)}`), '', ...totals.map(([label, value]) => `${label}: ${money(value)}`), '', 'Delivery details:', ...address, '', 'You can view your order in My Account on the SHOP.CO website.'].join('\n');
+  const html = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,sans-serif;color:#222"><div style="max-width:640px;margin:24px auto;padding:24px;background:white;border-radius:12px"><h1 style="font-size:24px">SHOP.CO</h1><h2 style="font-size:20px">Your order is confirmed</h2><p>Hi ${escape(name)}, thank you for shopping with us.</p><p><strong>Order #${escape(id)}</strong></p><p>${escape(payment)}</p><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr><th align="left">Product</th><th align="right">Qty</th><th align="right">Total</th></tr></thead><tbody>${items.map(item => `<tr><td style="padding:12px 4px;border-bottom:1px solid #ddd;overflow-wrap:anywhere">${escape(item.name)}<br><small>Size: ${escape(item.size || 'Standard')} · Color: ${escape(item.color || 'Standard')}<br>Unit price: ${escape(money(item.price))}</small></td><td align="right" style="padding:12px 4px;border-bottom:1px solid #ddd">${escape(item.quantity)}</td><td align="right" style="padding:12px 4px;border-bottom:1px solid #ddd">${escape(money(item.price * item.quantity))}</td></tr>`).join('')}</tbody></table><table style="width:100%;margin-top:16px">${totals.map(([label, value]) => `<tr><td style="padding:5px 0">${escape(label)}</td><td align="right">${escape(money(value))}</td></tr>`).join('')}</table><h3>Delivery details</h3><p style="line-height:1.6">${address.map(escape).join('<br>')}</p><p style="font-size:13px;color:#666">View your order in My Account on the SHOP.CO website.</p></div></body></html>`;
+  return { to: shipping.email, subject: `SHOP.CO order confirmation #${id}`, text, html };
+}
+module.exports = { orderEmail };

@@ -72,6 +72,7 @@ async function getGuestCart(owner) {
 
 async function putGuestCart(owner, data) {
   const input = { items: Array.isArray(data?.items) ? data.items : [], revision: Number(data?.revision || 0), promoCode: data?.promoCode || '' };
+  if (typeof input.promoCode === 'string') input.promoCode = input.promoCode.trim().toUpperCase();
   await quote(input.items, input.promoCode);
   const cart = await GuestCart.findOneAndUpdate(
     { owner, revision: input.revision },

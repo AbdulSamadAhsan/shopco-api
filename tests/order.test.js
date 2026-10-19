@@ -5,6 +5,8 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const { Product } = require('../models/Product');
+const { Coupon } = require('../models/Coupon');
+const emails = require('../services/orderEmailService');
 const { Order } = require('../models/Order');
 const { Cart } = require('../models/Cart');
 const { User } = require('../models/User');
@@ -24,6 +26,9 @@ function body() {
   };
 }
 function fixtures() {
+  mock.method(emails, 'enqueue', async () => {});
+  mock.method(emails, 'deliver', async () => ({ status: 'sent' }));
+  mock.method(Coupon, 'findOne', () => ({ session: () => ({ lean: async () => ({ code: 'WELCOME20', active: true, type: 'percentage', value: 20, minSubtotal: 0 }) }) }));
   const session = { withTransaction: mock.fn(async (fn) => fn()), endSession: mock.fn(async () => {}) };
   mock.method(mongoose, 'startSession', async () => session);
   mock.method(Order, 'findOne', async () => null);
@@ -67,7 +72,7 @@ test('both payment methods accept shipping without city and country', async () =
     assert.equal(result.order.paymentMethod, method);
     assert.equal(result.order.shipping.city, undefined);
     assert.equal(result.order.shipping.country, undefined);
-    assert.equal(result.order.total, 47);
+    assert.equal(result.order.total, 52.12);
   }
   assert.throws(() => validateOrder({ ...input, shipping: { ...input.shipping, address: '' } }, key), { status: 400 });
 });
@@ -94,7 +99,7 @@ test('order uses trusted prices, ownership, defaults and transactional stock/car
   assert.equal(result.order.user, userId);
   assert.equal(result.order.subtotal, 40);
   assert.equal(result.order.discount, 8);
-  assert.equal(result.order.total, 47);
+  assert.equal(result.order.total, 52.12);
   assert.equal(result.order.items[0].price, 20);
   assert.equal(result.order.paymentMethod, 'cash_on_delivery');
   assert.equal(result.order.status, 'pending');

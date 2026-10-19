@@ -36,7 +36,7 @@ function validateOrder(data, key, paymentMethod = 'cash_on_delivery') {
     fail('Invalid payment method for this endpoint');
   if (data.promoCode !== undefined && (typeof data.promoCode !== 'string' || data.promoCode.length > 100))
     fail('Promo code must be a string of at most 100 characters');
-  return { items, shipping, promoCode: data.promoCode || '', paymentMethod };
+  return { items, shipping, promoCode: (data.promoCode || '').trim().toUpperCase(), paymentMethod };
 }
 
 module.exports = { validateOrder };
