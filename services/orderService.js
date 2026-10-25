@@ -1,3 +1,4 @@
+const { reconcileCompletedPayment } = require('./orderPaymentPolicy');
 const mongoose = require('mongoose');
 const { createHash } = require('node:crypto');
 const { Product } = require('../models/Product.js');
@@ -65,14 +66,15 @@ async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_o
 
 async function listOrders(userId, before) {
   if (before !== undefined && !mongoose.isObjectIdOrHexString(before)) fail(400, 'Invalid order history cursor');
-  return await Order.find({ user: userId, ...(before && { _id: { $lt: before } }) }).sort({ _id: -1 }).limit(100).lean();
+  const orders = await Order.find({ user: userId, ...(before && { _id: { $lt: before } }) }).sort({ _id: -1 }).limit(100).lean();
+  return (await Promise.all(orders.map(order => reconcileCompletedPayment(order, { user: userId })))).filter(Boolean);
 }
 
 async function getOrder(userId, orderId) {
   if (!mongoose.isObjectIdOrHexString(orderId)) fail(404, 'Order not found');
   const order = await Order.findOne({ _id: orderId, user: userId }).lean();
   if (!order) fail(404, 'Order not found');
-  return order;
+  return reconcileCompletedPayment(order, { user: userId });
 }
 
 
