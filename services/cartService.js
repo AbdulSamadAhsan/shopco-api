@@ -14,6 +14,7 @@ async function guestView(cart) {
       productId: String(i.productId),
       quantity: i.quantity,
       size: i.size,
+      availableSizes: p?.active ? p.sizes || [] : [],
       color: i.color,
       name: p?.name || 'Unavailable product',
       image: p?.image,
