@@ -71,8 +71,8 @@ test('expiration restores reserved inventory once even if event repeats',async t
 });
 test('status endpoint scopes lookup to signed in user',async t=>{
  fixture(t);Order.findOne.mock.mockImplementation(async()=>null);
- await assert.rejects(service.checkoutStatus('different-user','cs_test_example'),{status:404});
- assert.equal(Order.findOne.mock.calls[0].arguments[0].user,'different-user');
+ await assert.rejects(service.checkoutStatus('dddddddddddddddddddddddd','cs_test_example'),{status:404});
+ assert.equal(Order.findOne.mock.calls[0].arguments[0].user,'dddddddddddddddddddddddd');
 });
 test('bad webhook signatures are rejected; authentic test completion is handled',async t=>{
  const {session,client}=fixture(t);session.status='complete';session.payment_status='paid';
@@ -122,4 +122,23 @@ test('retrying a hosted session keeps its original redirect flow',async t=>{
  const result=await service.startCheckout(order.user,{checkoutUi:'elements'},'request-key');
  assert.equal(client.checkout.sessions.create.mock.callCount(),0);
  assert.equal(result.clientSecret,undefined);assert.ok(result.url.startsWith('https://checkout.stripe.com/'));
+});
+
+test('guest Stripe checkout, verification and cancellation stay scoped to the cart owner', async t => {
+ const { order, session, client } = fixture(t);
+ const owner = { guestTokenHash: 'a'.repeat(64) };
+ order.user = null; order.guestTokenHash = owner.guestTokenHash;
+ session.metadata.userId = 'guest:' + owner.guestTokenHash;
+ assert.equal(service.sessionParameters(order).metadata.userId, session.metadata.userId);
+ const result = await service.startCheckout(owner, {}, 'guest-checkout-key');
+ assert.equal(result.sessionId, session.id);
+ const lookup = Order.findOne;
+ lookup.mock.mockImplementation(async filter => !('guestTokenHash' in filter) || filter.guestTokenHash === owner.guestTokenHash ? order : null);
+ await service.checkoutStatus(owner, session.id);
+ await assert.rejects(service.checkoutStatus({ guestTokenHash: 'b'.repeat(64) }, session.id), { status: 404 });
+ await assert.rejects(service.cancelCheckout({ guestTokenHash: 'b'.repeat(64) }, session.id), { status: 404 });
+ client.checkout.sessions.expire = mock.fn(async () => ({ ...session, status: 'expired' }));
+ await service.cancelCheckout(owner, session.id);
+ assert.equal(client.checkout.sessions.expire.mock.callCount(), 1);
+ assert.throws(() => service.verifySession(order, { ...session, metadata: { ...session.metadata, userId: 'guest:' + 'b'.repeat(64) } }), { status: 409 });
 });

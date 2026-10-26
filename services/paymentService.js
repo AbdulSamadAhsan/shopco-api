@@ -4,6 +4,7 @@ const orders = require('./orderService');
 const { Order } = require('../models/Order');
 const { Product } = require('../models/Product');
 const emails = require('./orderEmailService');
+const { ownerFilter, paymentOwner } = require('./orderOwner');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 const cents = value => Math.round(value * 100);
 
@@ -12,7 +13,7 @@ function verifySession(order, session) {
   if (session.livemode !== false || session.mode !== 'payment' ||
       session.client_reference_id !== String(order._id) ||
       session.metadata?.orderId !== String(order._id) ||
-      session.metadata?.userId !== String(order.user) ||
+      session.metadata?.userId !== paymentOwner(order) ||
       session.amount_total !== cents(order.total) || session.currency !== order.currency.toLowerCase() ||
       (order.stripeSessionId && order.stripeSessionId !== session.id))
     fail(409, 'Payment details do not match this order');
@@ -61,7 +62,7 @@ function sessionParameters(order, ui = 'hosted') {
     mode: 'payment', allowed_payment_method_types: ['card'], line_items: lines,
     customer_email: order.shipping.email,
     client_reference_id: String(order._id),
-    metadata: { orderId: String(order._id), userId: String(order.user) },
+    metadata: { orderId: String(order._id), userId: paymentOwner(order) },
     payment_intent_data: { metadata: { orderId: String(order._id) } },
     ...(ui === 'elements' ? {
       ui_mode: 'elements', return_url: `${origin}/checkout?session_id={CHECKOUT_SESSION_ID}`,
@@ -106,7 +107,7 @@ async function checkoutStatus(userId, sessionId) {
   if (typeof sessionId !== 'string' || !/^cs_test_[A-Za-z0-9]+$/.test(sessionId)) fail(400, 'Invalid checkout session');
   const session = await config.stripe().checkout.sessions.retrieve(sessionId);
   // Check ownership before disclosing or updating the order through this user route.
-  const order = await Order.findOne({ _id: session.metadata?.orderId, user: userId, paymentMethod: 'stripe' });
+  const order = await Order.findOne({ _id: session.metadata?.orderId, ...ownerFilter(userId), paymentMethod: 'stripe' });
   if (!order) fail(404, 'Payment order not found');
   verifySession(order, session);
   const updated = await applySession(session);

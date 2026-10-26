@@ -7,12 +7,13 @@ const { Order } = require('../models/Order.js');
 const { quote } = require('./checkoutService.js');
 const { validateOrder } = require('./orderValidation.js');
 const emails = require('./orderEmailService');
+const { ownerFilter, scopedKey } = require('./orderOwner');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_on_delivery') {
   const input = validateOrder(data, idempotencyKey, paymentMethod);
-  const key = idempotencyKey;
+  const key = scopedKey(userId, idempotencyKey);
   const hash = createHash('sha256').update(JSON.stringify(input)).digest('hex');
-  const lookup = { user: userId, idempotencyKey: key };
+  const lookup = { ...ownerFilter(userId), idempotencyKey: key };
   let order = await Order.findOne(lookup);
   if (order) {
     if (order.requestHash !== hash) fail(409, 'Idempotency key was already used with different details');
@@ -48,7 +49,7 @@ async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_o
         ],
         { session },
       );
-      if (paymentMethod === 'cash_on_delivery')
+      if (paymentMethod === 'cash_on_delivery' && !lookup.guestTokenHash)
         await Cart.updateOne({ user: userId }, { items: [] }, { session });
       if (paymentMethod === 'cash_on_delivery') await emails.enqueue(order._id, session);
     });

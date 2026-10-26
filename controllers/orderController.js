@@ -2,7 +2,7 @@ const service = require('../services/orderService.js');
 const ok = (res, data, status = 200, extra = {}) => res.status(status).json({ success: true, data, ...extra });
 async function createOrder(req, res) {
   const { order, created } = await service.createOrder(
-    req.user._id,
+    req.checkoutOwner,
     req.body,
     req.headers['idempotency-key'],
   );

@@ -166,7 +166,7 @@ test('database failures propagate without clearing the cart and close the sessio
   assert.equal(session.endSession.mock.callCount(), 1);
 });
 
-test('HTTP order route enforces JWT and returns JSON 400, 201, 200 and 409', async (t) => {
+test('HTTP order route requires a valid checkout owner and returns JSON 400, 201, 200 and 409', async (t) => {
   fixtures();
   const oldSecret = process.env.JWT_SECRET;
   process.env.JWT_SECRET = 'test-secret-that-is-at-least-32-characters';
@@ -181,7 +181,7 @@ test('HTTP order route enforces JWT and returns JSON 400, 201, 200 and 409', asy
   const token = jwt.sign({}, process.env.JWT_SECRET, { subject: userId, issuer: 'shopco-api', audience: 'shopco' });
   const send = (input, headers = {}) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(input) });
   const unauthenticated = await send(body());
-  assert.equal(unauthenticated.status, 401);
+  assert.equal(unauthenticated.status, 400);
   assert.equal((await unauthenticated.json()).success, false);
   const headers = { authorization: `Bearer ${token}`, 'idempotency-key': key };
   assert.equal((await send({}, headers)).status, 400);
@@ -192,6 +192,36 @@ test('HTTP order route enforces JWT and returns JSON 400, 201, 200 and 409', asy
   Order.findOne.mock.mockImplementation(async () => payload.data);
   assert.equal((await send(body(), headers)).status, 200);
   assert.equal((await send({ ...body(), promoCode: '' }, headers)).status, 409);
+});
+
+test('guest order route uses cart ownership, preserves retry safety and keeps history private', async t => {
+  fixtures();
+  const app = express();
+  app.use(express.json()); app.use('/api', routes); app.use(errorHandler);
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const url = `http://127.0.0.1:${server.address().port}/api/orders`;
+  const headers = { 'content-type': 'application/json', 'x-cart-token': 'a'.repeat(64), 'idempotency-key': key };
+  const send = (input, extra = {}) => fetch(url, { method: 'POST', headers: { ...headers, ...extra }, body: JSON.stringify(input) });
+  assert.equal((await send(body(), { 'x-cart-token': 'invalid' })).status, 400);
+  const created = await send({ ...body(), user: userId, guestTokenHash: 'spoofed' });
+  assert.equal(created.status, 201);
+  const { data: order } = await created.json();
+  assert.equal(order.user, null);
+  assert.equal(order.guestTokenHash, createHash('sha256').update('a'.repeat(64)).digest('hex'));
+  assert.equal(order.total, 52.12);
+  assert.equal(Cart.updateOne.mock.callCount(), 0);
+  Order.findOne.mock.mockImplementation(async filter => filter.idempotencyKey === order.idempotencyKey ? order : null);
+  assert.equal((await send(body())).status, 200);
+  assert.equal((await send({ ...body(), promoCode: '' })).status, 409);
+  const another = await send(body(), { 'x-cart-token': 'b'.repeat(64) });
+  assert.equal(another.status, 201);
+  assert.notEqual((await another.json()).data.idempotencyKey, order.idempotencyKey);
+  assert.equal(Order.create.mock.callCount(), 2);
+  process.env.JWT_SECRET ||= 'test-secret-that-is-at-least-32-characters';
+  assert.equal((await fetch(url, { headers })).status, 401);
+  assert.equal((await fetch(url + '/' + order._id, { headers })).status, 401);
 });
 
 test('orders no longer require city or country', async () => {

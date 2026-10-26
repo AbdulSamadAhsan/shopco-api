@@ -3,7 +3,8 @@ const Order = model(
   'Order',
   new Schema(
     {
-      user: { type: Schema.Types.ObjectId, required: true },
+      user: { type: Schema.Types.ObjectId, required: function () { return !this.guestTokenHash; } },
+      guestTokenHash: { type: String, match: /^[a-f0-9]{64}$/ },
       idempotencyKey: { type: String, required: true },
       requestHash: String,
       items: [

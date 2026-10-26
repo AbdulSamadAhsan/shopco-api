@@ -1,8 +1,8 @@
 const express = require('express');
-const { auth } = require('../middleware/auth');
+const { checkoutOwner } = require('../middleware/checkoutOwner');
 const { createCheckout, checkoutStatus, cancelCheckout } = require('../controllers/paymentController');
 const router = express.Router();
-router.post('/checkout', auth, createCheckout);
-router.get('/checkout/:id', auth, checkoutStatus);
-router.post('/checkout/:id/cancel', auth, cancelCheckout);
+router.post('/checkout', checkoutOwner, createCheckout);
+router.get('/checkout/:id', checkoutOwner, checkoutStatus);
+router.post('/checkout/:id/cancel', checkoutOwner, cancelCheckout);
 module.exports = router;
