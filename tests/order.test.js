@@ -56,7 +56,7 @@ test('new orders snapshot converted prices and keep retry amounts after the curr
   assert.equal(placed.order.total, 14593.6);
   assert.equal(placed.order.currency, 'PKR');
   Order.findOne.mock.mockImplementation(async () => placed.order);
-  currency.getCurrency.mock.mockImplementation(async () => ({ currency: 'EUR', exchangeRate: 0.9 }));
+  currency.getCurrency.mock.mockImplementation(async () => ({ currency: 'USD', exchangeRate: 1 }));
   assert.equal((await createOrder(userId, input, key)).order.total, 14593.6);
   assert.equal(Order.create.mock.callCount(), 1);
 });

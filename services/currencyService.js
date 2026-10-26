@@ -1,5 +1,5 @@
 const { StoreSettings } = require('../models/StoreSettings');
-const currencies = ['USD', 'PKR', 'EUR', 'GBP', 'AED', 'SAR', 'INR', 'CAD', 'AUD'];
+const currencies = ['USD', 'PKR'];
 async function getCurrency() {
   const settings = await StoreSettings.findOne({ key: 'store' }).lean();
   if (!settings || settings.currency === 'USD') return { currency: 'USD', exchangeRate: 1, baseCurrency: 'USD' };

@@ -19,7 +19,7 @@ test('store currency defaults only when absent and reads the admin-managed excha
 });
 test('converted unit prices, fixed discounts, tax and delivery add up in cents', () => {
   const base = { items: [{ price: 0.01, quantity: 3 }], subtotal: 0.03, discount: 0.01, gst: 0, gstRate: 0.16, deliveryFee: 15, total: 15.02, currency: 'USD' };
-  const result = convertQuote(base, { currency: 'EUR', exchangeRate: 1.5, baseCurrency: 'USD' });
+  const result = convertQuote(base, { currency: 'PKR', exchangeRate: 1.5, baseCurrency: 'USD' });
   assert.equal(result.items[0].price, 0.02);
   assert.equal(result.subtotal, 0.06);
   assert.equal(result.discount, 0.02);
