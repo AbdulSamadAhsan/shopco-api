@@ -1,5 +1,6 @@
 const { Product } = require('../models/Product.js');
 const { couponDiscount } = require('./couponService');
+const { sizePricing } = require('./sizePricing');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 async function quote(items, promoCode, session) {
   if (!Array.isArray(items) || items.length > 100) fail(400, 'Cart must contain at most 100 items');
@@ -22,7 +23,7 @@ async function quote(items, promoCode, session) {
     if (!p.sizes.includes(i.size) || !p.colors.includes(i.color)) fail(400, 'Invalid product size or color');
     totals.set(i.productId, (totals.get(i.productId) || 0) + i.quantity);
     if (totals.get(i.productId) > p.stock) fail(409, 'Insufficient stock for ' + p.name);
-    return { ...i, name: p.name, image: p.image, price: p.price };
+    return { ...i, name: p.name, image: p.image, price: sizePricing(p, i.size).price };
   });
   const cents = lines.reduce((sum, i) => sum + Math.round(i.price * 100) * i.quantity, 0);
   const discount = await couponDiscount(promoCode, cents, session);

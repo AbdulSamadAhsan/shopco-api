@@ -71,6 +71,21 @@ test('a stale or omitted exchange rate cannot place an order at an unreviewed to
   assert.equal(Order.create.mock.callCount(), 0);
 });
 
+test('orders use trusted discounted size prices and snapshot each size separately', async () => {
+  const { product } = fixtures();
+  product.sizes = ['M', 'L']; product.discount = '20%';
+  product.sizePrices = [{ size: 'M', price: 25 }, { size: 'L', price: 40 }];
+  const input = { ...body(), promoCode: '', items: [{ productId, quantity: 2, size: 'M', color: 'Black', price: 0 }, { productId, quantity: 1, size: 'L', color: 'Black', price: 0 }] };
+  const { order } = await createOrder(userId, input, key);
+  assert.equal(order.items[0].price, 20);
+  assert.equal(order.items[1].price, 32);
+  assert.equal(order.subtotal, 72);
+  assert.equal(order.gst, 11.52);
+  assert.equal(order.total, 98.52);
+  product.sizePrices[0].price = 99;
+  assert.equal(order.items[0].price, 20);
+});
+
 test('order history pagination always stays scoped to the signed-in account', async () => {
   let filter, sort, limit;
   mock.method(Order, 'find', value => {

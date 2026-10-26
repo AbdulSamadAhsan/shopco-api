@@ -34,15 +34,15 @@ test('cart responses use the same converted currency for unit prices and checkou
   mock.method(currency, 'getCurrency', async () => ({ currency: 'PKR', exchangeRate: 280, baseCurrency: 'USD' }));
   mock.method(GuestCart, 'findOneAndUpdate', async () => ({ items: [{ productId: id, quantity: 2, size: 'M', color: 'Black' }], revision: 4 }));
   mock.method(Product, 'find', () => {
-    const query = { session() { return this; }, lean: async () => [{ _id: id, name: 'Coat', active: true, price: 80, stock: 10, sizes: ['M'], colors: ['Black'] }] };
+    const query = { session() { return this; }, lean: async () => [{ _id: id, name: 'Coat', active: true, price: 80, sizePrices: [{ size: 'M', price: 100 }], stock: 10, sizes: ['M'], colors: ['Black'] }] };
     return query;
   });
   const result = await require('../services/cartService').getGuestCart('guest');
-  assert.equal(result.items[0].price, 22400);
-  assert.equal(result.totals.items[0].price, 22400);
+  assert.equal(result.items[0].price, 28000);
+  assert.equal(result.totals.items[0].price, 28000);
   assert.equal(result.currency, 'PKR');
   assert.equal(result.totals.currency, 'PKR');
-  assert.equal(result.totals.subtotal, 44800);
-  assert.equal(result.totals.gst, 7168);
-  assert.equal(result.totals.total, 56168);
+  assert.equal(result.totals.subtotal, 56000);
+  assert.equal(result.totals.gst, 8960);
+  assert.equal(result.totals.total, 69160);
 });

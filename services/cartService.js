@@ -3,6 +3,7 @@ const { Cart } = require('../models/Cart.js');
 const { GuestCart } = require('../models/GuestCart.js');
 const { quote } = require('./checkoutService.js');
 const currency = require('./currencyService');
+const { sizePricing } = require('./sizePricing');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 async function guestView(cart) {
   const settings = await currency.getCurrency();
@@ -16,7 +17,7 @@ async function guestView(cart) {
       color: i.color,
       name: p?.name || 'Unavailable product',
       image: p?.image,
-      price: currency.convert(p?.price || 0, settings.exchangeRate),
+      price: currency.convert(sizePricing(p, i.size).price, settings.exchangeRate),
       stock: p?.stock || 0,
       available: !!(
         p?.active &&
