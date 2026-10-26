@@ -36,7 +36,12 @@ function validateOrder(data, key, paymentMethod = 'cash_on_delivery') {
     fail('Invalid payment method for this endpoint');
   if (data.promoCode !== undefined && (typeof data.promoCode !== 'string' || data.promoCode.length > 100))
     fail('Promo code must be a string of at most 100 characters');
-  return { items, shipping, promoCode: (data.promoCode || '').trim().toUpperCase(), paymentMethod };
+  const currency = {};
+  if (data.currency !== undefined || data.exchangeRate !== undefined) {
+    if (typeof data.currency !== 'string' || !/^[A-Z]{3}$/.test(data.currency) || typeof data.exchangeRate !== 'number' || !Number.isFinite(data.exchangeRate) || data.exchangeRate <= 0) fail('Invalid checkout currency');
+    currency.currency = data.currency; currency.exchangeRate = data.exchangeRate;
+  }
+  return { items, shipping, promoCode: (data.promoCode || '').trim().toUpperCase(), paymentMethod, ...currency };
 }
 
 module.exports = { validateOrder };

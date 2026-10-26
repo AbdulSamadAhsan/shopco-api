@@ -2,8 +2,10 @@ const { Product } = require('../models/Product.js');
 const { Cart } = require('../models/Cart.js');
 const { GuestCart } = require('../models/GuestCart.js');
 const { quote } = require('./checkoutService.js');
+const currency = require('./currencyService');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 async function guestView(cart) {
+  const settings = await currency.getCurrency();
   const products = await Product.find({ _id: { $in: cart.items.map((i) => i.productId) } }).lean();
   const items = cart.items.map((i) => {
     const p = products.find((p) => String(p._id) === String(i.productId));
@@ -14,7 +16,7 @@ async function guestView(cart) {
       color: i.color,
       name: p?.name || 'Unavailable product',
       image: p?.image,
-      price: p?.price || 0,
+      price: currency.convert(p?.price || 0, settings.exchangeRate),
       stock: p?.stock || 0,
       available: !!(
         p?.active &&
@@ -27,15 +29,15 @@ async function guestView(cart) {
   let totals = null,
     message = '';
   try {
-    totals = await quote(
+    totals = currency.convertQuote(await quote(
       items.map(({ productId, quantity, size, color }) => ({ productId, quantity, size, color })),
       cart.promoCode,
-    );
+    ), settings);
   } catch (e) {
     if (![400, 409].includes(e.status)) throw e;
     message = e.message;
   }
-  return { items, totals, message, revision: cart.revision, promoCode: cart.promoCode || '' };
+  return { items, totals, ...settings, message, revision: cart.revision, promoCode: cart.promoCode || '' };
 }
 
 async function getUserCart(userId) {
@@ -91,7 +93,7 @@ async function putGuestCart(owner, data) {
 }
 
 async function checkoutQuote(data) {
-  return await quote(Array.isArray(data?.items) ? data.items : [], data?.promoCode);
+  return currency.convertQuote(await quote(Array.isArray(data?.items) ? data.items : [], data?.promoCode), await currency.getCurrency());
 }
 
 module.exports = { getUserCart, putUserCart, deleteUserCart, getGuestCart, putGuestCart, checkoutQuote };

@@ -8,6 +8,7 @@ const { quote } = require('./checkoutService.js');
 const { validateOrder } = require('./orderValidation.js');
 const emails = require('./orderEmailService');
 const { ownerFilter, scopedKey } = require('./orderOwner');
+const currency = require('./currencyService');
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
 async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_on_delivery') {
   const input = validateOrder(data, idempotencyKey, paymentMethod);
@@ -20,11 +21,16 @@ async function createOrder(userId, data, idempotencyKey, paymentMethod = 'cash_o
     if (paymentMethod === 'cash_on_delivery') await emails.deliver(order._id);
     return { order, created: false };
   }
+  const settings = await currency.getCurrency();
+  if ((input.currency !== undefined && (input.currency !== settings.currency || input.exchangeRate !== settings.exchangeRate)) ||
+      (input.currency === undefined && settings.currency !== 'USD')) {
+    fail(409, 'Store currency changed. Refresh your cart and review the new total.');
+  }
   const session = await mongoose.startSession();
   let created = true;
   try {
     await session.withTransaction(async () => {
-      const priced = await quote(input.items, input.promoCode, session);
+      const priced = currency.convertQuote(await quote(input.items, input.promoCode, session), settings);
       for (const line of priced.items) {
         const result = await Product.updateOne(
           { _id: line.productId, active: true, stock: { $gte: line.quantity } },

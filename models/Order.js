@@ -37,6 +37,8 @@ const Order = model(
       deliveryFee: Number,
       total: Number,
       currency: { type: String, default: 'USD' },
+      baseCurrency: { type: String, default: 'USD' },
+      exchangeRate: { type: Number, default: 1 },
       paymentMethod: { type: String, default: 'cash_on_delivery' },
       paymentStatus: { type: String, default: 'unpaid' },
       stripeSessionId: String,

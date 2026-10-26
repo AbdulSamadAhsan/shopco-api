@@ -37,6 +37,18 @@ test('session totals are built from saved order amounts and retry key is stable'
  assert.equal(result.sessionId,'cs_test_example');
  assert.equal(Order.findOneAndUpdate.mock.callCount(),0);
 });
+test('Stripe charges the saved order currency and rejects a session in another currency', async t => {
+ const { order, session } = fixture(t);
+ order.currency = 'PKR';
+ order.subtotal = 22400; order.discount = 4480; order.gst = 2867.2; order.deliveryFee = 4200; order.total = 24987.2;
+ const params = service.sessionParameters(order);
+ assert.ok(params.line_items.every(line => line.price_data.currency === 'pkr'));
+ assert.equal(params.line_items.reduce((sum, line) => sum + line.price_data.unit_amount * line.quantity, 0), 2498720);
+ session.amount_total = 2498720; session.currency = 'pkr';
+ service.verifySession(order, session);
+ assert.throws(() => service.verifySession(order, { ...session, currency: 'usd' }), { status: 409 });
+});
+
 test('existing Stripe session is reused without creating another',async t=>{
  const {order,client}=fixture(t); order.stripeSessionId='cs_test_example';
  await service.startCheckout(order.user,{},'request-key');

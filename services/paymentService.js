@@ -51,13 +51,14 @@ async function applySession(session) {
 }
 
 function sessionParameters(order, ui = 'hosted') {
+  const currency = order.currency.toLowerCase();
   const origin = config.checkoutOrigin();
   const merchandise = cents(order.subtotal) - cents(order.discount);
   const lines = [];
-  if (merchandise > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: merchandise,
+  if (merchandise > 0) lines.push({ quantity: 1, price_data: { currency, unit_amount: merchandise,
     product_data: { name: 'SHOP.CO merchandise', description: order.items.map(i => `${i.name} (${i.size}, ${i.color}) x${i.quantity}`).join('; ').slice(0, 500) } } });
-  if (cents(order.gst || 0) > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: cents(order.gst), product_data: { name: 'GST (16%)' } } });
-  if (cents(order.deliveryFee) > 0) lines.push({ quantity: 1, price_data: { currency: 'usd', unit_amount: cents(order.deliveryFee), product_data: { name: 'Delivery' } } });
+  if (cents(order.gst || 0) > 0) lines.push({ quantity: 1, price_data: { currency, unit_amount: cents(order.gst), product_data: { name: 'GST (16%)' } } });
+  if (cents(order.deliveryFee) > 0) lines.push({ quantity: 1, price_data: { currency, unit_amount: cents(order.deliveryFee), product_data: { name: 'Delivery' } } });
   return {
     mode: 'payment', allowed_payment_method_types: ['card'], line_items: lines,
     customer_email: order.shipping.email,

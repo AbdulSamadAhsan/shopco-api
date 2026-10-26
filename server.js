@@ -39,6 +39,10 @@ app.use('/api', async (req, res, next) => {
   next();
 });
 app.get('/api/health', (req, res) => res.json({ success: true, service: 'SHOP.CO API', database: 'connected' }));
+app.get('/api/store-settings', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ success: true, data: await require('./services/currencyService').getCurrency() });
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);

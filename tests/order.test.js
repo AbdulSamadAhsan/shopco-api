@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const { Product } = require('../models/Product');
 const { Coupon } = require('../models/Coupon');
 const emails = require('../services/orderEmailService');
+const currency = require('../services/currencyService');
 const { Order } = require('../models/Order');
 const { Cart } = require('../models/Cart');
 const { User } = require('../models/User');
@@ -26,6 +27,7 @@ function body() {
   };
 }
 function fixtures() {
+  mock.method(currency, 'getCurrency', async () => ({ currency: 'USD', exchangeRate: 1, baseCurrency: 'USD' }));
   mock.method(emails, 'enqueue', async () => {});
   mock.method(emails, 'deliver', async () => ({ status: 'not_configured' }));
   mock.method(Coupon, 'findOne', () => ({ session: () => ({ lean: async () => ({ code: 'WELCOME20', active: true, type: 'percentage', value: 20, minSubtotal: 0 }) }) }));
@@ -40,6 +42,34 @@ function fixtures() {
   return { session, product };
 }
 afterEach(() => mock.restoreAll());
+
+test('new orders snapshot converted prices and keep retry amounts after the currency changes', async () => {
+  fixtures();
+  currency.getCurrency.mock.mockImplementation(async () => ({ currency: 'PKR', exchangeRate: 280, baseCurrency: 'USD' }));
+  const input = { ...body(), currency: 'PKR', exchangeRate: 280 };
+  const placed = await createOrder(userId, input, key);
+  assert.equal(placed.order.items[0].price, 5600);
+  assert.equal(placed.order.subtotal, 11200);
+  assert.equal(placed.order.discount, 2240);
+  assert.equal(placed.order.gst, 1433.6);
+  assert.equal(placed.order.deliveryFee, 4200);
+  assert.equal(placed.order.total, 14593.6);
+  assert.equal(placed.order.currency, 'PKR');
+  Order.findOne.mock.mockImplementation(async () => placed.order);
+  currency.getCurrency.mock.mockImplementation(async () => ({ currency: 'EUR', exchangeRate: 0.9 }));
+  assert.equal((await createOrder(userId, input, key)).order.total, 14593.6);
+  assert.equal(Order.create.mock.callCount(), 1);
+});
+
+test('a stale or omitted exchange rate cannot place an order at an unreviewed total', async () => {
+  fixtures();
+  currency.getCurrency.mock.mockImplementation(async () => ({ currency: 'PKR', exchangeRate: 280, baseCurrency: 'USD' }));
+  for (const input of [body(), { ...body(), currency: 'USD', exchangeRate: 1 }, { ...body(), currency: 'PKR', exchangeRate: 279 }]) {
+    await assert.rejects(createOrder(userId, input, key), { status: 409 });
+  }
+  assert.equal(Product.updateOne.mock.callCount(), 0);
+  assert.equal(Order.create.mock.callCount(), 0);
+});
 
 test('order history pagination always stays scoped to the signed-in account', async () => {
   let filter, sort, limit;
