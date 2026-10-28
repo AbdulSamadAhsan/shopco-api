@@ -86,6 +86,38 @@ test('orders use trusted discounted size prices and snapshot each size separatel
   assert.equal(order.items[0].price, 20);
 });
 
+test('size discounts and coupons produce the same trusted order and Stripe amounts in USD and PKR', async () => {
+  const { product } = fixtures();
+  product.sizes = ['M', 'L'];
+  product.discount = '20%';
+  product.sizePrices = [{ size: 'M', price: 25 }, { size: 'L', price: 40 }];
+  const payments = require('../services/paymentService');
+  for (const expected of [
+    { currency: 'USD', exchangeRate: 1, prices: [20, 32], subtotal: 72, discount: 14.4, gst: 9.22, deliveryFee: 15, total: 81.82, amount: 8182 },
+    { currency: 'PKR', exchangeRate: 280, prices: [5600, 8960], subtotal: 20160, discount: 4032, gst: 2580.48, deliveryFee: 4200, total: 22908.48, amount: 2290848 },
+  ]) {
+    currency.getCurrency.mock.mockImplementation(async () => ({ currency: expected.currency, exchangeRate: expected.exchangeRate, baseCurrency: 'USD' }));
+    const input = { ...body(), currency: expected.currency, exchangeRate: expected.exchangeRate,
+      total: 1, discount: 999999,
+      items: [{ productId, quantity: 2, size: 'M', color: 'Black', price: 0 }, { productId, quantity: 1, size: 'L', color: 'Black', price: 0 }] };
+    for (const owner of [userId, { guestTokenHash: 'd'.repeat(64) }]) {
+      for (const method of ['cash_on_delivery', 'stripe']) {
+        const { order } = await createOrder(owner, { ...input, paymentMethod: method }, key + expected.currency + method, method);
+        assert.deepEqual(order.items.map(item => item.price), expected.prices);
+        for (const field of ['currency', 'exchangeRate', 'subtotal', 'discount', 'gst', 'deliveryFee', 'total']) assert.equal(order[field], expected[field], field);
+        assert.equal(order.paymentMethod, method);
+        if (method !== 'stripe') continue;
+        const params = payments.sessionParameters(order, 'elements');
+        assert.ok(params.line_items.every(line => line.price_data.currency === expected.currency.toLowerCase()));
+        assert.equal(params.line_items.reduce((sum, line) => sum + line.quantity * line.price_data.unit_amount, 0), expected.amount);
+        const session = { id: 'cs_test_regression', livemode: false, mode: 'payment', client_reference_id: String(order._id), metadata: params.metadata, currency: expected.currency.toLowerCase(), amount_total: expected.amount };
+        payments.verifySession(order, session);
+        assert.throws(() => payments.verifySession(order, { ...session, amount_total: expected.amount + 1 }), { status: 409 });
+      }
+    }
+  }
+});
+
 test('order history pagination always stays scoped to the signed-in account', async () => {
   let filter, sort, limit;
   mock.method(Order, 'find', value => {
